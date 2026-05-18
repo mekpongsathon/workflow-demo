@@ -1,0 +1,21 @@
+app = "demo-app-web-uat"
+primary_region = "sin"
+
+[build]
+  dockerfile = "frontend/Dockerfile"
+
+  [build.args]
+    MODE = "uat"
+    VITE_API_URL = "https://demo-app-api-uat.fly.dev"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

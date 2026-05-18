@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  demo-app-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: demo-app-api:local
+    container_name: demo-app-api
+    ports:
+      - "8001:8080"
+    environment:
+      - APP_ENV=local
+    restart: always
+
+  demo-app-web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - MODE=local
+        - VITE_API_URL=http://localhost:8001
+    image: demo-app-web:local
+    container_name: demo-app-web
+    ports:
+      - "8002:8080"
+    restart: always
+    depends_on:
+      - demo-app-api
