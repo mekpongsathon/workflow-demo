@@ -86,7 +86,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ?? Job 2: Deploy to UAT (auto) ?????????????????????????????????????????????
+  # 🚀 Job 2: Deploy to UAT (auto) ─────────────────────────────────────────────
   deploy-uat:
     needs: build-push
     if: needs.build-push.outputs.env == 'uat'
@@ -95,7 +95,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Find last merged PR
+        id: find_pr
+        run: |
+          PR=$(gh pr list --repo ${{ github.repository }} --state merged --base main --limit 1 --json number --jq '.[0].number')
+          echo "pr_number=$PR" >> $GITHUB_OUTPUT
+          echo "Found PR: #$PR"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Set UAT Deploy Status = Deploying
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          PROJECT_ID: ${{ vars.WORKFLOW_PROJECT_ID }}
+          UAT_DEPLOY_STATUS_FIELD_ID: ${{ vars.WORKFLOW_UAT_DEPLOY_STATUS_FIELD_ID }}
+          UAT_DEPLOY_VERSION_FIELD_ID: ${{ vars.WORKFLOW_UAT_DEPLOY_VERSION_FIELD_ID }}
+          DEPLOYING_OPTION_ID: ${{ vars.WORKFLOW_DEPLOYING_OPTION_ID }}
+          DEPLOY_SUCCESS_OPTION_ID: ${{ vars.WORKFLOW_DEPLOY_SUCCESS_OPTION_ID }}
+          DEPLOY_FAILED_OPTION_ID: ${{ vars.WORKFLOW_DEPLOY_FAILED_OPTION_ID }}
+          DEPLOY_STATUS: deploying
+          PR_NUMBER: ${{ steps.find_pr.outputs.pr_number }}
+        run: bash .github/scripts/update-uat-deploy.sh
+
       - name: Deploy to fly.io UAT
+        id: deploy
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
@@ -106,6 +130,21 @@ jobs:
           else
             flyctl deploy --image "$IMAGE" --config fly-web-uat.toml --remote-only
           fi
+
+      - name: Update UAT Deploy Status after deploy
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          PROJECT_ID: ${{ vars.WORKFLOW_PROJECT_ID }}
+          UAT_DEPLOY_STATUS_FIELD_ID: ${{ vars.WORKFLOW_UAT_DEPLOY_STATUS_FIELD_ID }}
+          UAT_DEPLOY_VERSION_FIELD_ID: ${{ vars.WORKFLOW_UAT_DEPLOY_VERSION_FIELD_ID }}
+          DEPLOYING_OPTION_ID: ${{ vars.WORKFLOW_DEPLOYING_OPTION_ID }}
+          DEPLOY_SUCCESS_OPTION_ID: ${{ vars.WORKFLOW_DEPLOY_SUCCESS_OPTION_ID }}
+          DEPLOY_FAILED_OPTION_ID: ${{ vars.WORKFLOW_DEPLOY_FAILED_OPTION_ID }}
+          DEPLOY_STATUS: ${{ steps.deploy.outcome == 'success' && 'success' || 'failed' }}
+          DEPLOY_VERSION: ${{ needs.build-push.outputs.version }}
+          PR_NUMBER: ${{ steps.find_pr.outputs.pr_number }}
+        run: bash .github/scripts/update-uat-deploy.sh
 
   # ?? Job 3: Deploy to PROD (manual approval required) ????????????????????????
   deploy-prod:
