@@ -21,7 +21,7 @@ function App() {
 
   return (
     <div className="app">
-      <h1>Demo App</h1>
+      <h1>Demo App Mek</h1>
       <div className="env-badge">ENV: {data?.env ?? '...'}</div>
       {error && <div className="error">Backend unreachable: {error}</div>}
       {data && (
