@@ -1,0 +1,27 @@
+name: PR Merged - Update Status to Done
+
+on:
+  pull_request:
+    types:
+      - closed
+
+permissions:
+  contents: read
+
+jobs:
+  update-status:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+      PROJECT_ID: ${{ vars.WORKFLOW_PROJECT_ID }}
+      FIELD_ID: ${{ vars.WORKFLOW_STATUS_FIELD_ID }}
+      OPTION_ID: ${{ vars.WORKFLOW_DONE_OPTION_ID }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update linked issues to Done
+        run: bash .github/scripts/update-project-field.sh

@@ -2,7 +2,7 @@ app = "demo-app-api-prod"
 primary_region = "sin"
 
 [build]
-  dockerfile = "backend/Dockerfile"
+  dockerfile = "fly-api.Dockerfile"
 
 [env]
   APP_ENV = "prod"

@@ -2,7 +2,7 @@ app = "demo-app-web-uat"
 primary_region = "sin"
 
 [build]
-  dockerfile = "frontend/Dockerfile"
+  dockerfile = "fly-web.Dockerfile"
 
   [build.args]
     MODE = "uat"
