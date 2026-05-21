@@ -168,7 +168,7 @@ jobs:
           PR_NUMBERS: ${{ steps.find_prs.outputs.pr_numbers }}
         run: bash .github/scripts/update-uat-deploy.sh
 
-  # ?? Job 3: Deploy to PROD (manual approval required) ????????????????????????
+  # 🚀 Job 3: Deploy to PROD (manual approval required) ─────────────────────
   deploy-prod:
     needs: build-push
     if: needs.build-push.outputs.env == 'prod'
@@ -177,7 +177,52 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Find all PRs since last tag
+        id: find_prs
+        run: |
+          CURR_TAG="${GITHUB_REF#refs/tags/}"
+          PREFIX=$(echo "$CURR_TAG" | cut -d'/' -f1)
+          ENV=$(echo "$CURR_TAG" | rev | cut -d'-' -f1 | rev)
+
+          PREV_TAG=$(git tag -l "${PREFIX}/v*-${ENV}" | sort -V | grep -v "^${CURR_TAG}$" | tail -1)
+
+          if [[ -z "$PREV_TAG" ]]; then
+            echo "No previous tag found — fetching last 50 merged PRs"
+            PR_NUMBERS=$(gh pr list \
+              --repo ${{ github.repository }} \
+              --state merged --base main --limit 50 \
+              --json number --jq '[.[].number] | join(",")')
+          else
+            SINCE=$(git log -1 --format="%aI" "${PREV_TAG}")
+            echo "Previous tag: ${PREV_TAG} (merged since: ${SINCE})"
+            PR_NUMBERS=$(gh pr list \
+              --repo ${{ github.repository }} \
+              --state merged --base main \
+              --search "merged:>${SINCE}" \
+              --json number --jq '[.[].number] | join(",")')
+          fi
+
+          echo "pr_numbers=$PR_NUMBERS" >> $GITHUB_OUTPUT
+          echo "Found PRs: $PR_NUMBERS"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Set PROD Deploy Status = Deploying
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          PROJECT_ID: ${{ vars.WORKFLOW_PROJECT_ID }}
+          PROD_DEPLOY_STATUS_FIELD_ID: ${{ vars.WORKFLOW_PROD_DEPLOY_STATUS_FIELD_ID }}
+          PROD_DEPLOY_VERSION_FIELD_ID: ${{ vars.WORKFLOW_PROD_DEPLOY_VERSION_FIELD_ID }}
+          PROD_DEPLOYING_OPTION_ID: ${{ vars.WORKFLOW_PROD_DEPLOYING_OPTION_ID }}
+          PROD_DEPLOY_SUCCESS_OPTION_ID: ${{ vars.WORKFLOW_PROD_DEPLOY_SUCCESS_OPTION_ID }}
+          PROD_DEPLOY_FAILED_OPTION_ID: ${{ vars.WORKFLOW_PROD_DEPLOY_FAILED_OPTION_ID }}
+          DEPLOY_STATUS: deploying
+          PR_NUMBERS: ${{ steps.find_prs.outputs.pr_numbers }}
+        run: bash .github/scripts/update-prod-deploy.sh
+
       - name: Deploy to fly.io PROD
+        id: deploy
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
@@ -188,3 +233,18 @@ jobs:
           else
             flyctl deploy --image "$IMAGE" --config fly-web-prod.toml --remote-only
           fi
+
+      - name: Update PROD Deploy Status after deploy
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          PROJECT_ID: ${{ vars.WORKFLOW_PROJECT_ID }}
+          PROD_DEPLOY_STATUS_FIELD_ID: ${{ vars.WORKFLOW_PROD_DEPLOY_STATUS_FIELD_ID }}
+          PROD_DEPLOY_VERSION_FIELD_ID: ${{ vars.WORKFLOW_PROD_DEPLOY_VERSION_FIELD_ID }}
+          PROD_DEPLOYING_OPTION_ID: ${{ vars.WORKFLOW_PROD_DEPLOYING_OPTION_ID }}
+          PROD_DEPLOY_SUCCESS_OPTION_ID: ${{ vars.WORKFLOW_PROD_DEPLOY_SUCCESS_OPTION_ID }}
+          PROD_DEPLOY_FAILED_OPTION_ID: ${{ vars.WORKFLOW_PROD_DEPLOY_FAILED_OPTION_ID }}
+          DEPLOY_STATUS: ${{ steps.deploy.outcome == 'success' && 'success' || 'failed' }}
+          DEPLOY_VERSION: ${{ needs.build-push.outputs.version }}
+          PR_NUMBERS: ${{ steps.find_prs.outputs.pr_numbers }}
+        run: bash .github/scripts/update-prod-deploy.sh

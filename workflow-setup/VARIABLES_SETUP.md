@@ -25,7 +25,17 @@
 
 > สร้าง field เหล่านี้อัตโนมัติโดยรัน `.\ tools\setup-uat-fields.ps1`
 
-## Required Secrets
+## PROD Deploy Variables (ใช้โดย build-and-deploy.yml + update-prod-deploy.sh)
+
+| Variable | Description | Example |
+|---|---|---|
+| `WORKFLOW_PROD_DEPLOY_STATUS_FIELD_ID` | "PROD Deploy Status" field Node ID | `PVTSSF_lAHO...` |
+| `WORKFLOW_PROD_DEPLOY_VERSION_FIELD_ID` | "PROD Deploy Version" field Node ID | `PVTF_lAHO...` |
+| `WORKFLOW_PROD_DEPLOYING_OPTION_ID` | "Deploying" option ID | `a1b2c3d4` |
+| `WORKFLOW_PROD_DEPLOY_SUCCESS_OPTION_ID` | "Success" option ID | `e5f6a7b8` |
+| `WORKFLOW_PROD_DEPLOY_FAILED_OPTION_ID` | "Failed" option ID | `c9d0e1f2` |
+
+> สร้าง field เหล่านี้ใน GitHub Project V2 ด้วยตนเอง แล้วรัน `.\ tools\discover-ids.ps1` เพื่อหา IDs
 
 | Secret | Description |
 |---|---|
