@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import UsersSection from './UsersSection.jsx'
 import AnalyticsSection from './AnalyticsSection.jsx'
 import SettingsSection from './SettingsSection.jsx'
+import TaxManagementSection from './TaxManagementSection.jsx'
 
 const MOCK_STATS = [
   { label: 'Total Users', value: '1,284', change: '+12%', up: true },
@@ -19,7 +20,7 @@ const MOCK_ACTIVITY = [
   { id: 5, user: 'carol', action: 'Created branch feat/issues-9', time: '3 hr ago' },
 ]
 
-const MENUS = ['Overview', 'Users', 'Analytics', 'Settings']
+const MENUS = ['Overview', 'Users', 'Analytics', 'Settings', 'จัดการภาษี']
 
 function DashboardPage() {
   const navigate = useNavigate()
@@ -85,6 +86,7 @@ function DashboardPage() {
         {activeMenu === 'Users' && <UsersSection />}
         {activeMenu === 'Analytics' && <AnalyticsSection />}
         {activeMenu === 'Settings' && <SettingsSection />}
+        {activeMenu === 'จัดการภาษี' && <TaxManagementSection />}
       </main>
     </div>
   )
