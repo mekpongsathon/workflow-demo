@@ -13,23 +13,24 @@
 | `WORKFLOW_CODE_REVIEW_OPTION_ID` | "Code Review" option ID | `98ab1234` |
 | `WORKFLOW_DONE_OPTION_ID` | "Done" option ID | `c1d2e3f4` |
 
-## Deploy Variables (Optional)
+## UAT Deploy Variables (ใช้โดย build-and-deploy.yml + update-uat-deploy.sh)
 
-| Variable | Description |
-|---|---|
-| `WORKFLOW_DEPLOY_DEV_FIELD_ID` | Deploy-Dev field Node ID |
-| `WORKFLOW_DEPLOY_UAT_FIELD_ID` | Deploy-UAT field Node ID |
-| `WORKFLOW_DEPLOY_PROD_FIELD_ID` | Deploy-Prod field Node ID |
-| `WORKFLOW_DEPLOY_WAITING_OPTION_ID` | "waiting" option ID |
-| `WORKFLOW_DEPLOY_DEPLOYING_OPTION_ID` | "deploying" option ID |
-| `WORKFLOW_DEPLOY_DEPLOYED_OPTION_ID` | "deployed" option ID |
-| `WORKFLOW_DEPLOY_FAILED_OPTION_ID` | "failed" option ID |
+| Variable | Description | Example |
+|---|---|---|
+| `WORKFLOW_UAT_DEPLOY_STATUS_FIELD_ID` | "UAT Deploy Status" field Node ID | `PVTSSF_lAHO...` |
+| `WORKFLOW_UAT_DEPLOY_VERSION_FIELD_ID` | "UAT Deploy Version" field Node ID | `PVTF_lAHO...` |
+| `WORKFLOW_DEPLOYING_OPTION_ID` | "Deploying" option ID | `e72b49d5` |
+| `WORKFLOW_DEPLOY_SUCCESS_OPTION_ID` | "Success" option ID | `c8db7e50` |
+| `WORKFLOW_DEPLOY_FAILED_OPTION_ID` | "Failed" option ID | `62156152` |
 
-## Required Secret
+> สร้าง field เหล่านี้อัตโนมัติโดยรัน `.\ tools\setup-uat-fields.ps1`
+
+## Required Secrets
 
 | Secret | Description |
 |---|---|
-| `PAT_TOKEN` | GitHub Personal Access Token with `project` + `repo` scopes |
+| `PAT_TOKEN` | GitHub Personal Access Token with `project` + `repo` + `workflow` scopes |
+| `FLY_API_TOKEN` | fly.io deploy token — ได้จาก `flyctl auth token` |
 
 ## วิธีหา Node IDs
 

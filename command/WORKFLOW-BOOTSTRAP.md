@@ -107,6 +107,7 @@ tools/
   workflows/
     pr-merged.yml
     pr-opened.yml
+    build-and-deploy.yml
   copilot-instructions.md
 
 command/
