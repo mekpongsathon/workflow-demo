@@ -134,5 +134,28 @@ const navigate = useNavigate()
 1. รัน check-status.ps1 -Issues N  → ได้ issue title + body
 2. อ่าน issue body เพื่อเข้าใจ requirement
 3. ใช้ patterns ด้านบน implement feature
-4. commit + รัน open-pr.ps1
+4. commit + push ไป feature branch
+5. รัน open-pr.ps1 → PR created + issues → Code Review
 ```
+
+### Open PR
+
+หลัง implement และ commit เสร็จแล้ว:
+
+```powershell
+# commit งานก่อน
+git add .
+git commit -m "feat: <สรุปสิ่งที่ทำ>"
+
+# push ไป feature branch
+$t = (Get-Content .env | Where-Object { $_ -match '^GITHUB_TOKEN=' } | Select-Object -First 1).Split('=',2)[1]
+git push "https://<owner>:${t}@github.com/<owner>/<repo>.git" feat/issues-<numbers>
+
+# เปิด PR + update Project V2 → Code Review อัตโนมัติ
+.\tools\open-pr.ps1 -Issues <issue_numbers>
+.\tools\open-pr.ps1 -Issues <issue_numbers> -Title "feat: my title" -Reviewers "username"
+```
+
+`open-pr.ps1` จะ:
+1. สร้าง PR พร้อม `Closes #N` ใน description
+2. Update issues → **Code Review** ใน Project V2 อัตโนมัติ
