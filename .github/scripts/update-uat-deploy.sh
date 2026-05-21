@@ -7,7 +7,8 @@
 # Required environment variables:
 #   GH_TOKEN                        — PAT with read:org + project scope
 #   PROJECT_ID                      — GitHub Project V2 node ID  (PVT_...)
-#   PR_NUMBER                       — Pull request number
+#   PR_NUMBERS                      — Comma-separated PR numbers (e.g. "10,11,12")
+#                                     (also accepts legacy PR_NUMBER for single PR)
 #   DEPLOY_STATUS                   — "deploying" | "success" | "failed"
 #   UAT_DEPLOY_STATUS_FIELD_ID      — Single-select field ID   (PVTSSF_...)
 #   UAT_DEPLOY_VERSION_FIELD_ID     — Text field ID            (PVF_...)
@@ -24,12 +25,15 @@ set -euo pipefail
 
 # ── Validation ────────────────────────────────────────────────────────────────
 : "${PROJECT_ID:?Missing PROJECT_ID}"
-: "${PR_NUMBER:?Missing PR_NUMBER}"
 : "${DEPLOY_STATUS:?Missing DEPLOY_STATUS (deploying|success|failed)}"
 : "${UAT_DEPLOY_STATUS_FIELD_ID:?Missing UAT_DEPLOY_STATUS_FIELD_ID}"
 : "${UAT_DEPLOY_VERSION_FIELD_ID:?Missing UAT_DEPLOY_VERSION_FIELD_ID}"
 : "${GITHUB_REPOSITORY_OWNER:?Missing GITHUB_REPOSITORY_OWNER}"
 : "${GITHUB_REPOSITORY:?Missing GITHUB_REPOSITORY}"
+
+# Accept PR_NUMBERS (comma-separated) — or fall back to legacy PR_NUMBER
+PR_NUMBERS_INPUT="${PR_NUMBERS:-${PR_NUMBER:-}}"
+: "${PR_NUMBERS_INPUT:?Missing PR_NUMBERS (comma-separated list of PR numbers)}"
 
 OWNER="$GITHUB_REPOSITORY_OWNER"
 REPO="${GITHUB_REPOSITORY#*/}"
@@ -49,31 +53,45 @@ esac
 echo ">> UAT Deploy Update: status=${DEPLOY_STATUS}$([ -n "$DEPLOY_VERSION" ] && echo " version=${DEPLOY_VERSION}" || true)"
 echo ""
 
-# ── Step 1: Get linked issues from PR via closingIssuesReferences ──────────────
-echo ">> Fetching linked issues for PR #${PR_NUMBER} in ${OWNER}/${REPO}..."
+# ── Step 1: Get linked issues from ALL PRs via closingIssuesReferences ────────
+echo ">> Fetching linked issues for PR(s): ${PR_NUMBERS_INPUT} in ${OWNER}/${REPO}..."
 
-LINKED_ISSUES=$(gh api graphql \
-  -f query='
-    query($owner: String!, $repo: String!, $number: Int!) {
-      repository(owner: $owner, name: $repo) {
-        pullRequest(number: $number) {
-          closingIssuesReferences(first: 20) {
-            nodes { id number }
+LINKED_ISSUES='[]'
+
+IFS=',' read -ra PR_LIST <<< "$PR_NUMBERS_INPUT"
+for PR_NUM in "${PR_LIST[@]}"; do
+  PR_NUM=$(echo "$PR_NUM" | tr -d ' ')
+  [[ -z "$PR_NUM" ]] && continue
+
+  ISSUES=$(gh api graphql \
+    -f query='
+      query($owner: String!, $repo: String!, $number: Int!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $number) {
+            closingIssuesReferences(first: 20) {
+              nodes { id number }
+            }
           }
         }
       }
-    }
-  ' \
-  -f owner="$OWNER" \
-  -f repo="$REPO" \
-  -F number="$PR_NUMBER" \
-  --jq '.data.repository.pullRequest.closingIssuesReferences.nodes')
+    ' \
+    -f owner="$OWNER" \
+    -f repo="$REPO" \
+    -F number="$PR_NUM" \
+    --jq '.data.repository.pullRequest.closingIssuesReferences.nodes // []')
+
+  COUNT=$(echo "$ISSUES" | jq 'length')
+  echo "   PR #${PR_NUM}: ${COUNT} linked issue(s)"
+
+  # Merge and deduplicate by issue id
+  LINKED_ISSUES=$(printf '%s\n%s' "$LINKED_ISSUES" "$ISSUES" | jq -s 'add | unique_by(.id)')
+done
 
 ISSUE_COUNT=$(echo "$LINKED_ISSUES" | jq 'length')
-echo "   Found ${ISSUE_COUNT} linked issue(s)"
+echo "   Total unique issues: ${ISSUE_COUNT}"
 
 if [[ "$ISSUE_COUNT" -eq 0 ]]; then
-  echo "   No linked issues — skipping"
+  echo "   No linked issues found across all PRs — skipping"
   exit 0
 fi
 
