@@ -94,6 +94,8 @@ jobs:
     environment: uat
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # fetch all history + tags to find previous tag correctly
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Find all PRs since last tag
@@ -176,6 +178,8 @@ jobs:
     environment: prod
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # fetch all history + tags to find previous tag correctly
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Find all PRs since last tag
