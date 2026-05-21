@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 function App() {
+  const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [health, setHealth] = useState(null)
   const [error, setError] = useState(null)
@@ -36,6 +38,9 @@ function App() {
           <p>Status: <strong>{health.status}</strong></p>
         </div>
       )}
+      <button className="btn-primary login-btn" onClick={() => navigate('/login')}>
+        Login
+      </button>
     </div>
   )
 }
