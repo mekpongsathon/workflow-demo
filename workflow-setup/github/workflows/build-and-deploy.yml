@@ -1,0 +1,190 @@
+name: Build, Push, and Deploy
+
+on:
+  push:
+    tags:
+      - 'be/v*.*.*-*'
+      - 'fe/v*.*.*-*'
+
+jobs:
+  # ?? Job 1: Build image ? push to ghcr.io ????????????????????????????????????
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      env: ${{ steps.parse.outputs.env }}
+      prefix: ${{ steps.parse.outputs.prefix }}
+      image: ${{ steps.parse.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse tag
+        id: parse
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          PREFIX=$(echo $TAG | cut -d'/' -f1)
+          VERSION=$(echo $TAG | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          ENV=$(echo $TAG | rev | cut -d'-' -f1 | rev)
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+
+          if [[ $PREFIX == be ]]; then
+            IMAGE_NAME="demo-app-api"
+          elif [[ $PREFIX == fe ]]; then
+            IMAGE_NAME="demo-app-web"
+          else
+            echo "Unknown tag prefix: $PREFIX" && exit 1
+          fi
+
+          IMAGE="ghcr.io/${OWNER}/${IMAGE_NAME}-${ENV}:${VERSION}"
+          IMAGE_LATEST="ghcr.io/${OWNER}/${IMAGE_NAME}-${ENV}:latest"
+
+          echo "version=$VERSION"           >> $GITHUB_OUTPUT
+          echo "env=$ENV"                   >> $GITHUB_OUTPUT
+          echo "prefix=$PREFIX"             >> $GITHUB_OUTPUT
+          echo "image=$IMAGE"               >> $GITHUB_OUTPUT
+          echo "image_latest=$IMAGE_LATEST" >> $GITHUB_OUTPUT
+          echo "TAG=$TAG | prefix=$PREFIX | version=$VERSION | env=$ENV"
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        if: steps.parse.outputs.prefix == 'be'
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          push: true
+          tags: |
+            ${{ steps.parse.outputs.image }}
+            ${{ steps.parse.outputs.image_latest }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push frontend
+        if: steps.parse.outputs.prefix == 'fe'
+        uses: docker/build-push-action@v5
+        with:
+          context: frontend
+          push: true
+          tags: |
+            ${{ steps.parse.outputs.image }}
+            ${{ steps.parse.outputs.image_latest }}
+          build-args: |
+            MODE=${{ steps.parse.outputs.env == 'prod' && 'production' || steps.parse.outputs.env }}
+            VITE_API_URL=https://demo-app-api-${{ steps.parse.outputs.env }}.fly.dev
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 🚀 Job 2: Deploy to UAT (auto) ─────────────────────────────────────────────
+  deploy-uat:
+    needs: build-push
+    if: needs.build-push.outputs.env == 'uat'
+    runs-on: ubuntu-latest
+    environment: uat
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Find all PRs since last tag
+        id: find_prs
+        run: |
+          CURR_TAG="${GITHUB_REF#refs/tags/}"
+          PREFIX=$(echo "$CURR_TAG" | cut -d'/' -f1)
+          ENV=$(echo "$CURR_TAG" | rev | cut -d'-' -f1 | rev)
+
+          # Find previous tag of same prefix/env
+          PREV_TAG=$(git tag -l "${PREFIX}/v*-${ENV}" | sort -V | grep -v "^${CURR_TAG}$" | tail -1)
+
+          if [[ -z "$PREV_TAG" ]]; then
+            echo "No previous tag found — fetching last 50 merged PRs"
+            PR_NUMBERS=$(gh pr list \
+              --repo ${{ github.repository }} \
+              --state merged --base main --limit 50 \
+              --json number --jq '[.[].number] | join(",")')
+          else
+            SINCE=$(git log -1 --format="%aI" "${PREV_TAG}")
+            echo "Previous tag: ${PREV_TAG} (merged since: ${SINCE})"
+            PR_NUMBERS=$(gh pr list \
+              --repo ${{ github.repository }} \
+              --state merged --base main \
+              --search "merged:>${SINCE}" \
+              --json number --jq '[.[].number] | join(",")')
+          fi
+
+          echo "pr_numbers=$PR_NUMBERS" >> $GITHUB_OUTPUT
+          echo "Found PRs: $PR_NUMBERS"
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+
+      - name: Set UAT Deploy Status = Deploying
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          PROJECT_ID: ${{ vars.WORKFLOW_PROJECT_ID }}
+          UAT_DEPLOY_STATUS_FIELD_ID: ${{ vars.WORKFLOW_UAT_DEPLOY_STATUS_FIELD_ID }}
+          UAT_DEPLOY_VERSION_FIELD_ID: ${{ vars.WORKFLOW_UAT_DEPLOY_VERSION_FIELD_ID }}
+          DEPLOYING_OPTION_ID: ${{ vars.WORKFLOW_DEPLOYING_OPTION_ID }}
+          DEPLOY_SUCCESS_OPTION_ID: ${{ vars.WORKFLOW_DEPLOY_SUCCESS_OPTION_ID }}
+          DEPLOY_FAILED_OPTION_ID: ${{ vars.WORKFLOW_DEPLOY_FAILED_OPTION_ID }}
+          DEPLOY_STATUS: deploying
+          PR_NUMBERS: ${{ steps.find_prs.outputs.pr_numbers }}
+        run: bash .github/scripts/update-uat-deploy.sh
+
+      - name: Deploy to fly.io UAT
+        id: deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          PREFIX="${{ needs.build-push.outputs.prefix }}"
+          IMAGE="${{ needs.build-push.outputs.image }}"
+          if [[ $PREFIX == be ]]; then
+            flyctl deploy --image "$IMAGE" --config fly-api-uat.toml --remote-only
+          else
+            flyctl deploy --image "$IMAGE" --config fly-web-uat.toml --remote-only
+          fi
+
+      - name: Update UAT Deploy Status after deploy
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          PROJECT_ID: ${{ vars.WORKFLOW_PROJECT_ID }}
+          UAT_DEPLOY_STATUS_FIELD_ID: ${{ vars.WORKFLOW_UAT_DEPLOY_STATUS_FIELD_ID }}
+          UAT_DEPLOY_VERSION_FIELD_ID: ${{ vars.WORKFLOW_UAT_DEPLOY_VERSION_FIELD_ID }}
+          DEPLOYING_OPTION_ID: ${{ vars.WORKFLOW_DEPLOYING_OPTION_ID }}
+          DEPLOY_SUCCESS_OPTION_ID: ${{ vars.WORKFLOW_DEPLOY_SUCCESS_OPTION_ID }}
+          DEPLOY_FAILED_OPTION_ID: ${{ vars.WORKFLOW_DEPLOY_FAILED_OPTION_ID }}
+          DEPLOY_STATUS: ${{ steps.deploy.outcome == 'success' && 'success' || 'failed' }}
+          DEPLOY_VERSION: ${{ needs.build-push.outputs.version }}
+          PR_NUMBERS: ${{ steps.find_prs.outputs.pr_numbers }}
+        run: bash .github/scripts/update-uat-deploy.sh
+
+  # ?? Job 3: Deploy to PROD (manual approval required) ????????????????????????
+  deploy-prod:
+    needs: build-push
+    if: needs.build-push.outputs.env == 'prod'
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy to fly.io PROD
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          PREFIX="${{ needs.build-push.outputs.prefix }}"
+          IMAGE="${{ needs.build-push.outputs.image }}"
+          if [[ $PREFIX == be ]]; then
+            flyctl deploy --image "$IMAGE" --config fly-api-prod.toml --remote-only
+          else
+            flyctl deploy --image "$IMAGE" --config fly-web-prod.toml --remote-only
+          fi
