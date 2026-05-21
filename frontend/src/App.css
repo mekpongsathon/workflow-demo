@@ -128,3 +128,84 @@ body:has(.dashboard) { display: block; }
   color: #475569; font-size: 1rem;
 }
 
+/* Users section */
+.users-section { padding: 2rem; flex: 1; }
+.users-toolbar { display: flex; gap: 1rem; margin-bottom: 1.25rem; align-items: center; }
+.users-search {
+  flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 0.5rem;
+  padding: 0.55rem 0.85rem; color: #e2e8f0; font-size: 0.9rem; outline: none;
+}
+.users-search:focus { border-color: #38bdf8; }
+.users-table-wrap { overflow-x: auto; }
+.users-table {
+  width: 100%; border-collapse: collapse; font-size: 0.875rem;
+  background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; overflow: hidden;
+}
+.users-table th {
+  background: #0f172a; color: #64748b; font-weight: 600; text-align: left;
+  padding: 0.75rem 1rem; border-bottom: 1px solid #334155; font-size: 0.8rem; text-transform: uppercase;
+}
+.users-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+.users-table tbody tr:last-child td { border-bottom: none; }
+.users-table tbody tr:hover { background: #253347; }
+.td-id { color: #475569; width: 40px; }
+.td-email { color: #94a3b8; }
+.td-actions { display: flex; gap: 0.5rem; }
+.users-empty { text-align: center; color: #475569; padding: 2rem; }
+.users-count { margin-top: 0.75rem; color: #475569; font-size: 0.8rem; }
+.badge {
+  display: inline-block; padding: 0.2rem 0.6rem; border-radius: 9999px;
+  font-size: 0.75rem; font-weight: 600;
+}
+.role-admin { background: #312e81; color: #a5b4fc; }
+.role-editor { background: #164e63; color: #67e8f9; }
+.role-viewer { background: #1c1917; color: #a8a29e; }
+.status-active { background: #14532d; color: #86efac; }
+.status-inactive { background: #1c1917; color: #78716c; }
+.btn-edit {
+  background: #1e40af; color: #bfdbfe; border: none; border-radius: 0.35rem;
+  padding: 0.3rem 0.7rem; cursor: pointer; font-size: 0.8rem; transition: opacity 0.15s;
+}
+.btn-edit:hover { opacity: 0.8; }
+.btn-delete {
+  background: #7f1d1d; color: #fca5a5; border: none; border-radius: 0.35rem;
+  padding: 0.3rem 0.7rem; cursor: pointer; font-size: 0.8rem; transition: opacity 0.15s;
+}
+.btn-delete:hover { opacity: 0.8; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal-box {
+  background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem;
+  padding: 2rem; width: 100%; max-width: 400px;
+}
+.modal-box h3 { font-size: 1.1rem; margin-bottom: 1.25rem; }
+.modal-box .form-group input,
+.modal-box .form-group select {
+  width: 100%; background: #0f172a; border: 1px solid #334155;
+  border-radius: 0.5rem; padding: 0.6rem 0.75rem; color: #e2e8f0;
+  font-size: 0.95rem; outline: none;
+}
+.modal-box .form-group select option { background: #1e293b; }
+.modal-box .form-group input:focus,
+.modal-box .form-group select:focus { border-color: #38bdf8; }
+.modal-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
+.modal-actions .btn-primary { flex: 1; padding: 0.6rem; }
+.btn-cancel {
+  flex: 1; background: #0f172a; color: #94a3b8; border: 1px solid #334155;
+  border-radius: 0.5rem; padding: 0.6rem; cursor: pointer; font-size: 1rem;
+  transition: border-color 0.15s;
+}
+.btn-cancel:hover { border-color: #475569; }
+.btn-delete-confirm {
+  flex: 1; background: #7f1d1d; color: #fca5a5; border: none;
+  border-radius: 0.5rem; padding: 0.6rem; cursor: pointer; font-size: 1rem;
+}
+.btn-delete-confirm:hover { opacity: 0.85; }
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  color: #475569; font-size: 1rem;
+}
+
