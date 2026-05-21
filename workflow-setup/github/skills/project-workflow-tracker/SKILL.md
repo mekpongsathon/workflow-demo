@@ -1,5 +1,5 @@
 ---
-name: github-workflow-cli
+name: project-workflow-tracker
 description: 'GitHub Workflow CLI สำหรับจัดการ issues, branches, PRs และ deploy ผ่าน PowerShell tools. ใช้เมื่อ: เริ่มทำ issue (start work), สร้าง branch, เปิด PR, อัปเดต status ใน Project V2, deploy UAT/PROD ด้วย tag, ตรวจสถานะงาน, check status, update deploy, เริ่มงาน issue ใหม่, push tag, ดูว่ากำลังทำ issue อะไรอยู่.'
 argument-hint: 'ระบุ action เช่น: start-work, open-pr, deploy-uat, deploy-prod, check-status'
 ---
