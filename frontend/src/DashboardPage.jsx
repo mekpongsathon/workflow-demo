@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import UsersSection from './UsersSection.jsx'
 
 const MOCK_STATS = [
   { label: 'Total Users', value: '1,284', change: '+12%', up: true },
@@ -79,7 +80,9 @@ function DashboardPage() {
           </>
         )}
 
-        {activeMenu !== 'Overview' && (
+        {activeMenu === 'Users' && <UsersSection />}
+
+        {activeMenu !== 'Overview' && activeMenu !== 'Users' && (
           <div className="placeholder-section">
             <p>{activeMenu} section — coming soon</p>
           </div>
