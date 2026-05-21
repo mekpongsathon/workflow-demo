@@ -64,7 +64,19 @@ agent: "agent"
 
 ---
 
-## Step 5 — Commit
+## Step 5 — อ่าน Workflow Tracking Steps
+
+**อ่าน** [.github/skills/project-workflow-tracker/SKILL.md](./../skills/project-workflow-tracker/SKILL.md) อีกครั้งเพื่อทำความเข้าใจขั้นตอน commit → push → PR และ tracking ที่ต้องทำ
+
+จาก SKILL.md ให้ระบุให้ชัดว่าจะทำอะไรบ้างใน step ถัดไป เช่น:
+- commit message format
+- push ไป branch ไหน
+- `open-pr.ps1` จะ update status อะไร
+- มี tracking อื่นที่ต้องทำก่อน/หลัง PR หรือไม่
+
+---
+
+## Step 6 — Commit & Push
 
 หลังได้รับการยืนยัน:
 
@@ -73,13 +85,18 @@ git add .
 git commit -m "feat: <สรุปสิ่งที่ทำ>"
 ```
 
+```powershell
+$t = (Get-Content .env | Where-Object { $_ -match '^GITHUB_TOKEN=' } | Select-Object -First 1).Split('=',2)[1]
+git push "https://<owner>:${t}@github.com/<owner>/<repo>.git" <current-branch>
+```
+
 commit message ต้องสรุปสั้นๆ ว่าทำอะไร ไม่ต้องใส่ closes ใน message
 
 ---
 
-## Step 6 — Open PR (ถาม)
+## Step 7 — Open PR (ถาม)
 
 ถามผู้ใช้ว่าต้องการเปิด PR เลยหรือไม่:
 
-- **ใช่**: `.\tools\open-pr.ps1 -Issues <issue_numbers>` → issues จะถูก update → Code Review
-- **ไม่**: จบ workflow, แจ้งว่า branch พร้อม push แล้ว
+- **ใช่**: `.\tools\open-pr.ps1 -Issues <issue_numbers>` → issues จะถูก update → **Code Review** อัตโนมัติ
+- **ไม่**: จบ workflow, แจ้งว่า branch พร้อม แต่ยังไม่ได้ update status
