@@ -7,15 +7,39 @@ agent: "agent"
 
 # Implement Issue Workflow
 
-รับ issue numbers จาก argument แล้วทำตาม 5 ขั้นตอนนี้ตามลำดับ
+**อ่าน SKILL ทั้ง 2 ก่อนเริ่ม:**
+- [project-workflow-tracker](./../skills/project-workflow-tracker/SKILL.md) — สำหรับ branch, tracking, PR
+- [web-implementor](./../skills/web-implementor/SKILL.md) — สำหรับ implement patterns
+
+รับ issue numbers จาก argument แล้วทำตามลำดับนี้
 
 ---
 
-## Step 1 — อ่าน Issue Details
+## Step 1 — เตรียม Branch + ตรวจสอบสถานะ
 
-อ่าน SKILL.md ของ `project-workflow-tracker` ที่ [.github/skills/project-workflow-tracker/SKILL.md](./../skills/project-workflow-tracker/SKILL.md) ก่อนเสมอ
+> 📋 **Project V2 Tracking**: issues ต้องเป็น **In Progress** ก่อน implement
 
-รัน PowerShell เพื่อดึงรายละเอียด issue:
+ตรวจสอบ branch ปัจจุบัน:
+
+```powershell
+git branch --show-current
+```
+
+- ถ้าอยู่บน `main` หรือ branch ที่ไม่ใช่ `feat/issues-<numbers>` → ให้รัน:
+  ```powershell
+  .\tools\start-work.ps1 -Issues <issue_numbers>
+  # สร้าง branch feat/issues-N และ update → In Progress อัตโนมัติ
+  ```
+- ถ้าอยู่บน feature branch อยู่แล้ว → ตรวจสอบว่า issues เป็น In Progress แล้วหรือยัง ถ้าไม่ใช่ให้รัน:
+  ```powershell
+  .\tools\update-status.ps1 -Issues <issue_numbers> -Status "In Progress"
+  ```
+
+**หลังจากนี้ issues ต้องเป็น → In Progress บน Project V2**
+
+---
+
+## Step 2 — อ่าน Issue Details
 
 ```powershell
 .\tools\check-status.ps1 -Issues <issue_numbers>
@@ -25,13 +49,12 @@ agent: "agent"
 - `title` — ชื่อ task
 - `body` — รายละเอียดที่ต้อง implement
 - `labels` — ประเภทงาน (frontend, backend, bug, etc.)
-- `state` — ต้องเป็น `open`
 
 ถ้า issue ไม่มี body ให้หยุดและแจ้งผู้ใช้ว่า issue ไม่มี description
 
 ---
 
-## Step 2 — วิเคราะห์ Requirement
+## Step 3 — วิเคราะห์ Requirement
 
 จาก issue details ให้วิเคราะห์และแจ้งผู้ใช้:
 
@@ -39,15 +62,15 @@ agent: "agent"
 2. **Files ที่ต้องสร้าง/แก้ไข**: ระบุ path ชัดเจน
 3. **Acceptance criteria**: สรุปจาก issue body
 
-รอ confirmation จากผู้ใช้หรือดำเนินการต่อถ้าชัดเจน
+ดำเนินการต่อได้เลยถ้า requirement ชัดเจน
 
 ---
 
-## Step 3 — Implement
+## Step 4 — Implement
 
-อ่าน SKILL.md ของ `web-implementor` ที่ [.github/skills/web-implementor/SKILL.md](./../skills/web-implementor/SKILL.md) ก่อน implement
+> 📋 **Project V2 Tracking**: สถานะคงเป็น **In Progress** ระหว่าง implement (ไม่มีการเปลี่ยนแปลง)
 
-ทำตาม patterns ใน web-implementor:
+อ่าน [web-implementor SKILL.md](./../skills/web-implementor/SKILL.md) แล้วทำตาม patterns:
 
 **กฎสำคัญ:**
 - Backend: Go stdlib only — ห้าม import package นอก standard library
@@ -58,27 +81,25 @@ agent: "agent"
 
 ---
 
-## Step 4 — สรุปการเปลี่ยนแปลง
+## Step 5 — สรุปการเปลี่ยนแปลง
 
 แสดงรายการ files ที่เปลี่ยนไปทั้งหมดพร้อม diff สั้นๆ แล้วถามผู้ใช้ยืนยันก่อน commit
 
 ---
 
-## Step 5 — อ่าน Workflow Tracking Steps
+## Step 6 — อ่าน Workflow Tracking (ก่อน commit/push/PR)
 
-**อ่าน** [.github/skills/project-workflow-tracker/SKILL.md](./../skills/project-workflow-tracker/SKILL.md) อีกครั้งเพื่อทำความเข้าใจขั้นตอน commit → push → PR และ tracking ที่ต้องทำ
+**อ่าน** [project-workflow-tracker SKILL.md](./../skills/project-workflow-tracker/SKILL.md) อีกครั้งเพื่อทำความเข้าใจขั้นตอนที่ถูกต้อง โดยเฉพาะ:
 
-จาก SKILL.md ให้ระบุให้ชัดว่าจะทำอะไรบ้างใน step ถัดไป เช่น:
-- commit message format
-- push ไป branch ไหน
-- `open-pr.ps1` จะ update status อะไร
-- มี tracking อื่นที่ต้องทำก่อน/หลัง PR หรือไม่
+- push ไป branch ไหน (ต้องเป็น feature branch ไม่ใช่ main)
+- `open-pr.ps1` ทำอะไร และ update status อะไร
+- มี tracking อื่นก่อน/หลัง PR หรือไม่
 
 ---
 
-## Step 6 — Commit & Push
+## Step 7 — Commit & Push
 
-หลังได้รับการยืนยัน:
+> 📋 **Project V2 Tracking**: สถานะยังคงเป็น **In Progress** (จะเปลี่ยนเมื่อเปิด PR)
 
 ```powershell
 git add .
@@ -87,16 +108,35 @@ git commit -m "feat: <สรุปสิ่งที่ทำ>"
 
 ```powershell
 $t = (Get-Content .env | Where-Object { $_ -match '^GITHUB_TOKEN=' } | Select-Object -First 1).Split('=',2)[1]
-git push "https://<owner>:${t}@github.com/<owner>/<repo>.git" <current-branch>
+git push "https://<owner>:${t}@github.com/<owner>/<repo>.git" feat/issues-<numbers>
 ```
 
 commit message ต้องสรุปสั้นๆ ว่าทำอะไร ไม่ต้องใส่ closes ใน message
 
 ---
 
-## Step 7 — Open PR (ถาม)
+## Step 8 — Open PR
+
+> 📋 **Project V2 Tracking**: การรัน `open-pr.ps1` จะ update issues → **Code Review** อัตโนมัติ
 
 ถามผู้ใช้ว่าต้องการเปิด PR เลยหรือไม่:
 
-- **ใช่**: `.\tools\open-pr.ps1 -Issues <issue_numbers>` → issues จะถูก update → **Code Review** อัตโนมัติ
-- **ไม่**: จบ workflow, แจ้งว่า branch พร้อม แต่ยังไม่ได้ update status
+- **ใช่**:
+  ```powershell
+  .\tools\open-pr.ps1 -Issues <issue_numbers>
+  # สร้าง PR พร้อม Closes #N
+  # issues → Code Review บน Project V2 อัตโนมัติ
+  ```
+- **ไม่**: จบ workflow แต่แจ้งผู้ใช้ว่าสถานะยังคงเป็น **In Progress** และยังไม่มี PR
+
+---
+
+## สรุป Project V2 Status ใน Workflow นี้
+
+| Step | Action | Project V2 Status |
+|---|---|---|
+| Step 1 | `start-work.ps1` หรือ `update-status.ps1` | **In Progress** |
+| Step 4–7 | กำลัง implement + commit | In Progress (ไม่เปลี่ยน) |
+| Step 8 | `open-pr.ps1` | **Code Review** |
+| (หลัง PR merged) | auto via `pr-merged.yml` | **Done** |
+
