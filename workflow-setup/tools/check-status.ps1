@@ -5,9 +5,10 @@
 .DESCRIPTION
     Usage:
         .\tools\check-status.ps1
+        .\tools\check-status.ps1 -Issues 12,13   # show issue details without a PR
 #>
 
-param([switch]$DryRun)
+param([switch]$DryRun, [int[]]$Issues = @())
 
 . "$PSScriptRoot\_github.ps1"
 if ($DryRun) { $global:DryRun = $true; Write-Host "[DRY-RUN MODE]" -ForegroundColor Yellow }
@@ -34,6 +35,17 @@ $prs = Invoke-GitHubREST -Path "/repos/$owner/$repo/pulls?head=${owner}:${branch
 if (-not $prs -or $prs.Count -eq 0) {
     Write-Host "  No open PR found for this branch."
     Write-Host "`nStatus: branch created, PR not yet opened."
+    if ($Issues.Count -gt 0) {
+        Write-Host ""
+        foreach ($num in $Issues) {
+            $detail = Get-IssueDetail -IssueNumber $num
+            $labelNames = ($detail.labels | ForEach-Object { $_.name }) -join ", "
+            Write-Host "  #$($detail.number): $($detail.title) [$($detail.state.ToUpper())]"
+            if ($labelNames) { Write-Host "  Labels:  $labelNames" }
+            if ($detail.body) { Write-Host "  Body:    $($detail.body.Trim())" }
+            Write-Host ""
+        }
+    }
     exit 0
 }
 
@@ -51,3 +63,15 @@ $issueText = if ($linkedIssues.Count -gt 0) {
 Write-Host "PR:     #$($pr.number) — $($pr.title) ($($pr.state.ToUpper()))"
 Write-Host "URL:    $($pr.html_url)"
 Write-Host "Issues: $issueText"
+
+if ($linkedIssues.Count -gt 0) {
+    Write-Host ""
+    foreach ($num in $linkedIssues) {
+        $detail = Get-IssueDetail -IssueNumber $num
+        $labelNames = ($detail.labels | ForEach-Object { $_.name }) -join ", "
+        Write-Host "  #$($detail.number): $($detail.title) [$($detail.state.ToUpper())]"
+        if ($labelNames) { Write-Host "  Labels:  $labelNames" }
+        if ($detail.body) { Write-Host "  Body:    $($detail.body.Trim())" }
+        Write-Host ""
+    }
+}

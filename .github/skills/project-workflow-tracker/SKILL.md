@@ -24,7 +24,7 @@ Todo → In Progress → Code Review → Done
 | `open-pr.ps1` | สร้าง PR + อัปเดต issues → Code Review | `.\tools\open-pr.ps1 -Issues 12,13` |
 | `update-status.ps1` | อัปเดต status โดยไม่ touch git | `.\tools\update-status.ps1 -Issues 12 -Status "Done"` |
 | `update-deploy.ps1` | อัปเดต UAT deploy status | `.\tools\update-deploy.ps1 -Issues "12,13" -Environment uat -Status deploying` |
-| `check-status.ps1` | ดู branch, PR, linked issues | `.\tools\check-status.ps1` |
+| `check-status.ps1` | ดู branch, PR, linked issues + issue details | `.\tools\check-status.ps1` หรือ `.\tools\check-status.ps1 -Issues 12,13` |
 | `discover-ids.ps1` | หา Project V2 field/option IDs | `.\tools\discover-ids.ps1` |
 | `setup-uat-fields.ps1` | สร้าง UAT Deploy fields ใน Project V2 | `.\tools\setup-uat-fields.ps1` |
 
@@ -86,12 +86,19 @@ git push "https://<owner>:${t}@github.com/<owner>/<repo>.git" fe/v1.0.0-prod be/
 
 > ต้อง approve ใน GitHub Actions environment `prod` ก่อน deploy จึงจะเริ่ม
 
-### ดูสถานะงานปัจจุบัน
+### ดูสถานะงานปัจจุบัน + รายละเอียด issue
 
 ```powershell
+# มี PR เปิดอยู่ → อ่าน linked issues จาก PR body อัตโนมัติ
 .\tools\check-status.ps1
-# แสดง: branch, PR number, linked issues
+
+# ยังไม่มี PR → ระบุ issue โดยตรง
+.\tools\check-status.ps1 -Issues 12,13
 ```
+
+Output ที่ได้: branch, PR, issue number + title + labels + body
+
+ข้อมูลเหล่านี้สามารถส่งต่อให้ skill อื่น (เช่น web-implementor) เพื่อ implement ต่อได้
 
 ---
 

@@ -126,6 +126,27 @@ query(`$owner: String!, `$repo: String!, `$number: Int!) {
     return $data.repository.issue
 }
 
+function Get-IssueDetail {
+    # Fetches full issue details from GitHub REST API.
+    # Returns: number, title, body, state, labels[].name, assignees[].login, html_url
+    param([int]$IssueNumber)
+    if ($global:DryRun) {
+        Write-Host "  [DRY-RUN] Get-IssueDetail #$IssueNumber" -ForegroundColor DarkGray
+        return [PSCustomObject]@{
+            number    = $IssueNumber
+            title     = "DRY-RUN: Issue #$IssueNumber title"
+            body      = "DRY-RUN: Issue #$IssueNumber description"
+            state     = "open"
+            labels    = @()
+            assignees = @()
+            html_url  = "https://github.com/dry-run/issues/$IssueNumber"
+        }
+    }
+    $owner = [System.Environment]::GetEnvironmentVariable("GITHUB_OWNER")
+    $repo  = [System.Environment]::GetEnvironmentVariable("GITHUB_REPO")
+    return Invoke-GitHubREST -Path "/repos/$owner/$repo/issues/$IssueNumber"
+}
+
 function Get-ProjectItemId {
     param([string]$IssueNodeId)
     if ($global:DryRun) {
